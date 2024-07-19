@@ -161,14 +161,14 @@ cpu_cycle_table:
     db 1, 1, 1, 1, 1, 1, 2, 1
     db 1, 1, 1, 1, 1, 1, 2, 1
 
-macro op_r8(op) {
+macro a_op_r8(op) {
     andi    t0, a0, 7
     addu    t0, t0, reg_ptr
     j       {op}
     lbu     a0, 0(t0)
 }
 
-macro op_hl(op) {
+macro a_op_hl(op) {
     daddiu  sp, sp, -8
     sd      ra, 0(sp)
     jal     cpu_read
@@ -179,7 +179,7 @@ macro op_hl(op) {
     move    a0, v0
 }
 
-macro op_u8(op) {
+macro a_op_u8(op) {
     sd      ra, -8(sp)
     jal     cpu_read8
     daddiu  sp, sp, -8
@@ -187,6 +187,27 @@ macro op_u8(op) {
     daddiu  sp, sp, 8
     j       {op}
     move    a0, v0
+}
+
+macro rmw_op_r8(op) {
+    srl     t0, a0, 3
+    addu    t0, t0, reg_ptr
+    j       {op}
+    lbu     a0, 0(t0)
+}
+
+macro rmw_op_hl(op) {
+    daddiu  sp, sp, -8
+    sd      ra, 0(sp)
+    jal     cpu_read
+    lhu     a0, {HL_PTR}
+    jal     {op}
+    move    a0, v0
+    ld      ra, 0(sp)
+    daddiu  sp, sp, 8
+    lhu     a0, {HL_PTR}
+    j       cpu_write
+    move    a1, v0
 }
 
 cpu_run:  // void()
@@ -277,13 +298,13 @@ cpu_adc:  // void(byte operand)
     sb      t0, {A_PTR}
 
 cpu_adc_hl:  // void()
-    op_hl(cpu_adc)
+    a_op_hl(cpu_adc)
 
 cpu_adc_r8:  // void(byte opcode)
-    op_r8(cpu_adc)
+    a_op_r8(cpu_adc)
 
 cpu_adc_u8:  // void()
-    op_u8(cpu_adc)
+    a_op_u8(cpu_adc)
 
 cpu_add:  // void(byte operand)
     lbu     t0, {A_PTR}
@@ -303,13 +324,13 @@ cpu_add:  // void(byte operand)
     sb      t0, {A_PTR}
 
 cpu_add_hl:  // void()
-    op_hl(cpu_add)
+    a_op_hl(cpu_add)
 
 cpu_add_r8:  // void(byte opcode)
-    op_r8(cpu_add)
+    a_op_r8(cpu_add)
 
 cpu_add_u8:  // void()
-    op_u8(cpu_add)
+    a_op_u8(cpu_add)
 
 cpu_add_hl_r16:  // void(hword r16)
     lhu     t0, {HL_PTR}
@@ -375,13 +396,13 @@ cpu_and:  // void(byte operand)
     sb      t0, {A_PTR}
 
 cpu_and_hl:  // void()
-    op_hl(cpu_and)
+    a_op_hl(cpu_and)
 
 cpu_and_r8:  // void(byte opcode)
-    op_r8(cpu_and)
+    a_op_r8(cpu_and)
 
 cpu_and_u8:  // void()
-    op_u8(cpu_and)
+    a_op_u8(cpu_and)
 
 cpu_cp:  // void(byte operand)
     lbu     t0, {A_PTR}
@@ -399,13 +420,13 @@ cpu_cp:  // void(byte operand)
     sb      t1, {NEG_PTR}
 
 cpu_cp_hl:  // void()
-    op_hl(cpu_cp)
+    a_op_hl(cpu_cp)
 
 cpu_cp_r8:  // void(byte opcode)
-    op_r8(cpu_cp)
+    a_op_r8(cpu_cp)
 
 cpu_cp_u8:  // void()
-    op_u8(cpu_cp)
+    a_op_u8(cpu_cp)
 
 cpu_or:  // void(byte operand)
     lbu     t0, {A_PTR}
@@ -417,13 +438,13 @@ cpu_or:  // void(byte operand)
     sb      t0, {A_PTR}
 
 cpu_or_hl:  // void()
-    op_hl(cpu_or)
+    a_op_hl(cpu_or)
 
 cpu_or_r8:  // void(byte opcode)
-    op_r8(cpu_or)
+    a_op_r8(cpu_or)
 
 cpu_or_u8:  // void()
-    op_u8(cpu_or)
+    a_op_u8(cpu_or)
 
 cpu_sbc:  // void(byte operand)
     lbu     t0, {A_PTR}
@@ -447,13 +468,13 @@ cpu_sbc:  // void(byte operand)
     sb      t0, {A_PTR}
 
 cpu_sbc_hl:  // void()
-    op_hl(cpu_sbc)
+    a_op_hl(cpu_sbc)
 
 cpu_sbc_r8:  // void(byte opcode)
-    op_r8(cpu_sbc)
+    a_op_r8(cpu_sbc)
 
 cpu_sbc_u8:  // void()
-    op_u8(cpu_sbc)
+    a_op_u8(cpu_sbc)
 
 cpu_sub:  // void(byte operand)
     lbu     t0, {A_PTR}
@@ -474,13 +495,13 @@ cpu_sub:  // void(byte operand)
     sb      t0, {A_PTR}
 
 cpu_sub_hl:  // void()
-    op_hl(cpu_sub)
+    a_op_hl(cpu_sub)
 
 cpu_sub_r8:  // void(byte opcode)
-    op_r8(cpu_sub)
+    a_op_r8(cpu_sub)
 
 cpu_sub_u8:  // void()
-    op_u8(cpu_sub)
+    a_op_u8(cpu_sub)
 
 cpu_xor:  // void(byte operand)
     lbu     t0, {A_PTR}
@@ -492,13 +513,13 @@ cpu_xor:  // void(byte operand)
     sb      t0, {A_PTR}
 
 cpu_xor_hl:  // void()
-    op_hl(cpu_xor)
+    a_op_hl(cpu_xor)
 
 cpu_xor_r8:  // void(byte opcode)
-    op_r8(cpu_xor)
+    a_op_r8(cpu_xor)
 
 cpu_xor_u8:  // void()
-    op_u8(cpu_xor)
+    a_op_u8(cpu_xor)
 
 cpu_ld_r8_r8:  // void(byte opcode)
     andi    t0, a0, 7
@@ -1140,10 +1161,10 @@ cpu_inc_sp:  // void()
     andi    gb_sp, gb_sp, $ffff
 
 cpu_cb:  // void()
-    daddiu  sp, sp, -8
-    sd      ra, 0(sp)
+    sd      ra, -8(sp)
     jal     cpu_read8
-    nop
+    daddiu  sp, sp, -8
+    move    a0, v0
     la      t0, cpu_cb_table
     andi    v0, v0, $f8
     addu    t0, t0, v0
